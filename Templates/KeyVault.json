@@ -89,6 +89,9 @@
         "metadata": {
           "description": "Location for all resources."
         }
+      },
+      "secretsObject": {
+          "type": "secureObject"
       }
     },
     "resources": [
@@ -117,6 +120,21 @@
             "family": "A"
           }
         }
-      }
+      },
+      {
+        "type": "Microsoft.KeyVault/vaults/secrets",
+        "name": "[concat(parameters('keyVaultName'), '/', parameters('secretsObject').secrets[copyIndex()].secretName)]",
+        "apiVersion": "2015-06-01",
+        "properties": {
+            "value": "[parameters('secretsObject').secrets[copyIndex()].secretValue]"
+        },
+        "dependsOn": [
+            "[concat('Microsoft.KeyVault/vaults/', parameters('keyVaultName'))]"
+        ],
+        "copy": {
+            "name": "secretsCopy",
+            "count": "[length(parameters('secretsObject').secrets)]"
+        }
+    }
     ]
   }

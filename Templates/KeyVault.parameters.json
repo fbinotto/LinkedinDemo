@@ -7,6 +7,16 @@
           },
           "objectId": {
             "value": "c0f6eb1c-9bd8-4e3d-a732-66f92161b393"
-          }
+          },
+          "secretsObject": {
+            "value": {
+                "secrets": [						
+                    {
+                        "secretName": "sqlpass",
+                        "secretValue": "L1nked1nD3mo!"
+                    }
+                ]
+            }
+        }
         }
       }

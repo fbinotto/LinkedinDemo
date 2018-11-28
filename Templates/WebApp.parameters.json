@@ -3,16 +3,13 @@
         "contentVersion": "1.0.0.0",
         "parameters": {
             "websiteName": {
-                "value": "aueapiappprd01"
+                "value": "linkedinApp"
             },
             "environments": {
                 "value": "staging"
             },
              "connectionString": {
                 "value": ""
-            },
-            "subscription": {
-                "value": "prod"
             }
         }
     }
