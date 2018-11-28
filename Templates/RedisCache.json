@@ -1,0 +1,96 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "cacheName": {
+            "type": "string",
+            "metadata": {
+                "description": "Redis Cache Resource Name"
+            }
+        },
+        "requestedServiceObjectiveName": {
+            "type": "string",
+            "allowedValues": [
+                "Basic",
+                "S0",
+                "S1",
+                "S2",
+                "P1",
+                "P2",
+                "P3"
+            ],
+            "metadata": {
+                "description": "Describes the performance level for Edition"
+            }
+        },
+        "cacheSKUName": {
+            "type": "string",
+            "allowedValues": [
+                "Basic",
+                "Standard"
+            ],
+            "metadata": {
+                "description": "The pricing tier of the new Azure Redis Cache."
+            }
+        },
+        "cacheSKUFamily": {
+            "type": "string",
+            "allowedValues": [
+                "C"
+            ],
+            "metadata": {
+                "description": "The family for the sku."
+            }
+        },
+        "cacheSKUCapacity": {
+            "type": "int",
+            "allowedValues": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+            ],
+            "metadata": {
+                "description": "The size of the new Azure Redis Cache instance. "
+            }
+        },
+        "keyVaultName": {
+            "type": "string"
+        }
+    },
+    "variables": {},
+    "resources": [
+        {
+            "name": "[parameters('cacheName')]",
+            "type": "Microsoft.Cache/Redis",
+            "location": "[resourceGroup().location]",
+            "apiVersion": "2015-08-01",
+            "dependsOn": [],
+            "tags": {
+                "displayName": "cache"
+            },
+            "properties": {
+                "sku": {
+                    "name": "[parameters('cacheSKUName')]",
+                    "family": "[parameters('cacheSKUFamily')]",
+                    "capacity": "[parameters('cacheSKUCapacity')]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.KeyVault/vaults/secrets",
+            "name": "[concat(parameters('keyVaultName'),'/cacheConnection')]",
+            "apiVersion": "[providers('Microsoft.KeyVault','vaults/secrets').apiVersions[0]]",
+            "properties": {
+              "contentType": "text/plain",
+              "value": "[concat(parameters('cacheName'),'.redis.cache.windows.net,abortConnect=false,ssl=true,password=', listKeys(resourceId('Microsoft.Cache/Redis', parameters('cacheName')), '2015-08-01').primaryKey)]"
+            },
+            "dependsOn": [
+                "[concat('Microsoft.Cache/Redis/', parameters('cacheName'))]"
+            ]
+          }
+    ]
+}

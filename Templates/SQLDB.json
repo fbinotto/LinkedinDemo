@@ -1,0 +1,113 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "serverName": {
+            "type": "string"
+        },
+        "databaseName": {
+            "type": "string"
+        },
+        "administratorLogin": {
+            "type": "string"
+        },
+        "administratorLoginPassword": {
+            "type": "securestring"
+        },
+        "keyVaultName": {
+            "type": "string"
+        }
+    },
+    "variables": {},
+    "resources": [
+        {
+            "comments": "Create SQL Logical Server",
+            "type": "Microsoft.Sql/servers",
+            "kind": "v12.0",
+            "name": "[parameters('serverName')]",
+            "apiVersion": "2015-05-01-preview",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "administratorLogin": "[parameters('administratorLogin')]",
+                "administratorLoginPassword": "[parameters('administratorLoginPassword')]",
+                "version": "12.0"
+            },
+            "dependsOn": []
+        },
+        {
+            "comments": "Create SQL Database",
+            "type": "Microsoft.Sql/servers/databases",
+            "sku": {
+                "name": "Basic",
+                "tier": "Basic"
+            },
+            "kind": "v12.0,user",
+            "name": "[concat(parameters('serverName'), '/', parameters('databaseName'))]",
+            "apiVersion": "2017-03-01-preview",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "collation": "SQL_Latin1_General_CP1_CI_AS",
+                "catalogCollation": "SQL_Latin1_General_CP1_CI_AS",
+                "zoneRedundant": false
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Sql/servers', parameters('serverName'))]"
+            ],
+            "resources": [
+                {
+                    "name": "default",
+                    "type": "backupLongTermRetentionPolicies",
+                    "dependsOn": [
+                        "[concat('Microsoft.Sql/servers/', parameters('serverName'), '/', 'databases', '/', parameters('databaseName'))]"
+                    ],
+                    "apiVersion": "2017-03-01-preview",
+                    "properties": {
+                        "weeklyRetention": "P1W",
+                        "monthlyRetention": "P4W",
+                        "yearlyRetention": "P520W",
+                        "weekOfYear": 1
+                    }
+                }
+            ]
+        },
+        {
+            "comments": "Create SQL Server Firewall Rules",
+            "type": "Microsoft.Sql/servers/firewallRules",
+            "name": "[concat(parameters('serverName'), '/', 'AllowAllWindowsAzureIps')]",
+            "apiVersion": "2015-05-01-preview",
+            "properties": {
+                "startIpAddress": "0.0.0.0",
+                "endIpAddress": "0.0.0.0"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Sql/servers', parameters('serverName'))]"
+            ]
+        },
+        {
+            "comments": "Enable SQL Database TDE",
+            "type": "Microsoft.Sql/servers/databases/transparentDataEncryption",
+            "name": "[concat(parameters('serverName'), '/', parameters('databaseName'), '/', 'current')]",
+            "apiVersion": "2014-04-01",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "status": "Enabled"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Sql/servers', parameters('serverName'))]",
+                "[resourceId('Microsoft.Sql/servers/databases', parameters('serverName'), parameters('databaseName'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.KeyVault/vaults/secrets",
+            "name": "[concat(parameters('keyVaultName'),'/connectionString')]",
+            "apiVersion": "[providers('Microsoft.KeyVault','vaults/secrets').apiVersions[0]]",
+            "properties": {
+              "contentType": "text/plain",
+              "value": "[concat('Server=tcp:',reference(parameters('serverName')).fullyQualifiedDomainName,',1433;Initial Catalog=',parameters('databaseName'),';Persist Security Info=False;User ID=',reference(parameters('serverName')).administratorLogin,';Password=',parameters('administratorLoginPassword'),';MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;')]"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Sql/servers/databases', parameters('serverName'), parameters('databaseName'))]"
+            ]
+          }
+    ]
+}
